@@ -2,14 +2,14 @@ import pygame
 import math 
 from queue import PriorityQueue
 
-length = 1000
-play = pygame.display.set_mode((length,length))
+width = 800
+win = pygame.display.set_mode((width,width))
 pygame.display.set_caption("Path finding algo")
 
 Aqua	= (0,255,255)           #start
 Magenta = (255,0,255)           #end
 Silver	= (192,192,192)         #grid default
-Gray	= (128,128,128)
+Gray	= (128,128,128)         #grid
 Maroon	= (128,0,0)             #closed
 Black	= (0,0,0)               #barrier
 Green	= (0,128,0)             #open
@@ -23,7 +23,7 @@ class node:
         self.col = col
         self.width = width
         self.x = row*width
-        self.y = row*width
+        self.y = col*width
         self.neighbour =[]
         self.color = Silver
         self.total_rows= total_rows
@@ -47,7 +47,7 @@ class node:
         return self.color == Magenta
 
     def reset(self):
-        return self.color = Silver
+        self.color = Silver
     
     def make_closed(self):
         self.color = Maroon
@@ -79,7 +79,7 @@ class node:
 def h(p1,p2):
     x1,y1=p1
     x2,y2=p2
-    return abs(x1-x2),abs(y1-y2)
+    return abs(x1-x2)+abs(y1-y2)
 
 def reconstruct_path():
     pass
@@ -87,32 +87,85 @@ def reconstruct_path():
 def algo():
     pass
 
-def make_grid(rows,width)
+def make_grid(rows,width):
     grid=[]
     gap = width//rows
     for i in range(rows):
         grid.append([])
         for j in range(rows):
-            node = node(i, j, gap, rows)
-            grid[i].append(node)
-    
+            Node = node(i, j, gap, rows)
+            grid[i].append(Node)
     return grid
 
-def draw_grid(win,rows,width)
-    gap = rows//width
+def draw_grid(win,rows,width):
+    gap = width//rows
     for i in range(rows):
-        pygame.draw.line(win,Silver, (0, gap*i), (width, gap*i))
-    for j in range(rows): #------------------------------------------------------------------------------------------
-        pygame.draw.line(win,Silver, (gap*i,0), (gap*i, width))
+        pygame.draw.line(win,Gray, (0, gap*i), (width, gap*i))
+    for i in range(rows): 
+        pygame.draw.line(win,Gray, (gap*i,0), (gap*i, width))
 
 def draw(win, grid, rows, width):
     win.fill(Silver)
     for row in grid:
-        for node in grid:
-            ndoe.draw(win)
-
+        for node in row:
+            node.draw(win)
+    
     draw_grid(win,rows, width)
     pygame.display.update()
 
-def get_clicked():
-    pass
+def get_clicked(pos, rows, width):
+    
+    gap = width//rows
+    y,x = pos
+    row = y//gap
+    col = x//gap
+    return row,col
+
+
+def main(win, width):
+    rows= 50
+    grid = make_grid(rows,width)
+
+    start = None 
+    end = None
+    run =True
+    while run:
+        draw(win, grid, rows, width)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                run = False
+            
+            if pygame.mouse.get_pressed()[0]:
+                pos = pygame.mouse.get_pos()
+                row,col = get_clicked(pos, rows, width)
+                Node = grid[row][col]
+                if not start and Node!=end:
+                    start = Node
+                    start.make_start()
+
+                elif not end and Node!=start:
+                    end = Node
+                    end.make_end()
+
+                elif Node!=start and Node!=end:
+                    Node.make_barrier()
+                
+            elif pygame.mouse.get_pressed()[2]:
+                pos =pygame.mouse.get_pos()
+                row,col = get_clicked(pos, rows, width)
+                node = grid[row][col]            
+                node.reset()
+                if node == start:
+                    start= None
+                elif node == end:
+                    end = None
+
+            if event.type == pygame.KEYDOWN     :
+                if event.key == pygame.K_SPACE and start and end:
+
+                    for row in grid:
+                        for node in grid:
+                            node.update_next(grid)
+    pygame.quit()
+
+main(win, width)
