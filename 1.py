@@ -3,7 +3,7 @@ import math
 from queue import PriorityQueue
 
 width = 800
-win = pygame.display.set_mode((width,width))
+WIN = pygame.display.set_mode((width,width))
 pygame.display.set_caption("Path finding algo")
 
 Aqua	= (0,255,255)           #start
@@ -70,23 +70,78 @@ class node:
     def draw(self, win):
         pygame.draw.rect(win, self.color, (self.x,self.y,self.width,self.width))
 
-    def update_next(self):
-        pass
-
-    def __it__(self):
-        pass
+    def update_next(self,grid):
+        self.neighbours=[]
+        if self.row < self.total_rows -1 and not grid[self.row+1][self.col].is_barrier(): #Down
+            self.neighbour.append(grid[self.row+1][self.col])
+        if self.row > 0 and not grid[self.row-1][self.col].is_barrier():                   #Up
+            self.neighbour.append(grid[self.row-1][self.col])
+        if self.col < self.total_rows -1 and not grid[self.row][self.col+1].is_barrier():  #right
+            self.neighbour.append(grid[self.row][self.col+1])
+        if self.col >0 and not grid[self.row][self.col-1].is_barrier():                    #left
+            self.neighbour.append(grid[self.row][self.col-1])    
+        
+    def __it__(self,other):
+        return False
 
 def h(p1,p2):
     x1,y1=p1
     x2,y2=p2
     return abs(x1-x2)+abs(y1-y2)
 
-def reconstruct_path():
-    pass
+def reconstruct_path(from1,current, draw):
+    while current in from1:
+        current= from1[current]
+        current.make_path()
+        draw()
+    
 
-def algo():
-    pass
+def algo(draw, grid, start, end):
+    count =0
+    set1 = PriorityQueue()
+    set1.put((0, count, start))
+    from1 ={}
+    g_score = {node: float("inf") for row in grid for node in row}
+    g_score[start] = 0                               #g score is the distance of start node to node we are talking about  
+    f_score = {node: float("inf") for row in grid for node in row}
+    f_score = h(start.get_pos(), end.get_pos())      #f score is the manhattan distance from current node to end  
 
+    set1_hash ={start}
+
+    while not set1.empty():
+        for event in pygame.event.get():
+            if event.type() == pygame.QUIT:
+                pygame.quit()
+
+        current = set1.get()[2]
+        set1_hash.remove(current)
+
+        if current == end:
+            reconstruct_path(from1, end, draw)
+            end.make_end()
+            return True
+
+        for neighbour in current.neighbours:
+            temp_g_score = g_score[current]+1
+
+            if temp_g_score < g_score[neighbour]:
+                from1[neighbour] = current
+                g_score[neighbour] = temp_g_score
+                f_score[neighbour] = g_score[neighbour] + h(neighbour.get_pos(),end.get_pos())
+                if neighbour not in set1_hash:
+                    count+=1
+                    set1.put((f_score[neighbour], count, neighbour))
+                    set1_hash.add(neighbour)
+                    neighbour.make_open()
+
+        draw()
+
+        if current!= start:
+            current.make_closed()
+
+    return False 
+
+         
 def make_grid(rows,width):
     grid=[]
     gap = width//rows
@@ -114,7 +169,6 @@ def draw(win, grid, rows, width):
     pygame.display.update()
 
 def get_clicked(pos, rows, width):
-    
     gap = width//rows
     y,x = pos
     row = y//gap
@@ -160,12 +214,19 @@ def main(win, width):
                 elif node == end:
                     end = None
 
-            if event.type == pygame.KEYDOWN     :
+            if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE and start and end:
-
                     for row in grid:
-                        for node in grid:
+                        for node in row:
                             node.update_next(grid)
+                            
+                algo(lambda: draw(win, grid, rows, width), grid, start, end)
+
+                if event.key == pygame.K_c:
+                    start = None
+                    end = None
+                    grid = make_grid(rows, width)
+    
     pygame.quit()
 
-main(win, width)
+main(WIN, width)
